@@ -1,0 +1,16 @@
+{
+  "name": "node-auth-example",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "start": "node app.js"
+  },
+  "dependencies": {
+    "express": "^3.4.8",
+    "jade": "*",
+    "jfs": "^0.1.7",
+    "bcrypt": "^0.7.8",
+    "connect-roles": "^3.0.3",
+    "passport": "^0.2.0"
+  }
+}
