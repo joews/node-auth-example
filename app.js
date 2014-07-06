@@ -13,10 +13,15 @@ var Store = require('jfs'),
 var db = new Store('data/users.json', { pretty: true }),
     user = new ConnectRoles();
 
+// Add some dummy user records
 db.saveSync('joe', { id: 'joe', password: 'joepw', actions: ['get a', 'get b'] });
 db.saveSync('bob', { id: 'bob', password: 'bobpw', actions: ['get b'] });
 
-// Authenticate
+
+/**
+ * Authentication callback for basic authentication
+ *  - look up user by ID and verify that passwords match
+ */
 function authenticateBasic(username, password, done) {
   db.get(username, function(err, user) {
     var msg = 'Authenticating ' +  username + ' with password';
@@ -35,18 +40,25 @@ function authenticateBasic(username, password, done) {
   });
 }
 
+/**
+ * Authentication callback for PKI authentication
+ *  - Look up a user by ID (which, in this simple case, is identical
+ *    to the certificate's Common Name attribute).
+ */
 function authenticatePki(subject, done) {
+  var msg = 'Attempting PKI authentication';
+
   if(!subject) {
-    console.log('Attempting PKI authentication ✘ - no subject'.red);
+    console.log(msg + ' ✘ - no subject'.red);
     done(null, false);
   } else if(!subject.CN) {
-    console.log('Attempting PKI authentication ✘ - no client CN'.red);
+    console.log(message +  '✘ - no client CN'.red);
     done(null, false);
   } else {
     var cn = subject.CN;
 
     db.get(cn, function(err, user) {
-      var msg = 'Authenticating ' +  cn + ' with certificate';
+      msg = 'Authenticating ' +  cn + ' with certificate';
 
       if(!user) {
         console.log(msg + ' ✘ - no such user'.red);
@@ -77,7 +89,6 @@ var options = {
   rejectUnauthorized: false
 };
 
-
 var app = express();
 
 app.set('port', process.env.PORT || 3443);
@@ -89,8 +100,8 @@ app.use(user.middleware());
 app.use(app.router);
 app.use(express.errorHandler());
 
-passport.use(new PkiStrategy({ session: false }, authenticatePki));
-passport.use(new BasicStrategy({ session: false }, authenticateBasic));
+passport.use(new PkiStrategy(authenticatePki));
+passport.use(new BasicStrategy(authenticateBasic));
 
 // curl -ki --user user:password https://localhost:3443/a
 // url -ki --key ssl/client.key --cert ssl/client.crt https://localhost:3443/b
@@ -101,7 +112,8 @@ app.get('/a',
    res.json(req.user);
   });
 
-// curl does not work with PKI authentication, though browser and wget work as expected
+// curl does not appear to work with PKI authentication
+// , though browser and wget work as expected
 // curl -i --user user:password localhost:3000/b
 // wget -q -O - --no-check-certificate --certificate=ssl/client.crt --private-key=ssl/client.key --ca-directory=ssl https://localhost:3443/b
 app.get('/b',
