@@ -12,6 +12,6 @@
     "jfs": "^0.1.7",
     "passport": "^0.2.0",
     "passport-http": "^0.2.2",
-    "passport-strategy": "^1.0.0"
+    "passport-pki": "git+ssh://git@github.com:jwhitfieldseed/passport-pki.git"
   }
 }

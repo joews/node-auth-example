@@ -7,7 +7,7 @@ var Store = require('jfs'),
     colors = require('colors'),
     passport = require('passport'),
     BasicStrategy = require('passport-http').BasicStrategy,
-    PkiStrategy = require('./lib/pki-strategy').Strategy,
+    PkiStrategy = require('passport-pki').Strategy,
     ConnectRoles = require('connect-roles');
 
 var db = new Store('data/users.json', { pretty: true }),

@@ -7,7 +7,7 @@ Using [passport.js](http://passportjs.org/). PKI and HTTP basic authentication a
 
 PKI is attempted first. If it succeeds, the user is authenticated. If it fails, HTTP basic authentiation is attempted. If that fails, a HTTP `401` is returned.
 
-A partially-implemented passport PKI strategy is included. It will soon be available as an NPM module.
+The [passport.js PKI strategy](https://github.com/jwhitfieldseed/passport-pki) is a work in progress.
 
 ## Authorisation
 Using [connect-roles](https://github.com/ForbesLindesay/connect-roles).
