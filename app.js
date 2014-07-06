@@ -1,7 +1,9 @@
 var express = require('express'),
-    http = require('http'),
+    https = require('https'),
     path = require('path'),
-    Store = require('jfs'),
+    fs = require('fs');
+
+var Store = require('jfs'),
     colors = require('colors'),
     passport = require('passport'),
     BasicStrategy = require('passport-http').BasicStrategy,
@@ -41,6 +43,14 @@ user.use(function(req, action) {
   return ok;
 });
 
+var appOptions = {
+    key: fs.readFileSync('ssl/server.key'),
+    cert: fs.readFileSync('ssl/server.crt'),
+    ca: fs.readFileSync('ssl/ca.crt'),
+    requestCert: true,
+    rejectUnauthorized: false
+};
+
 var app = express();
 
 app.set('port', process.env.PORT || 3000);
@@ -54,7 +64,7 @@ app.use(express.errorHandler());
 
 passport.use(new BasicStrategy({}, authenticate));
 
-// curl -i --user user:password localhost:3000/a
+// curl -ki --user user:password localhost:3000/a
 app.get('/a',
   passport.authenticate('basic', { session: false }),
   user.can('get a'),
@@ -71,6 +81,6 @@ app.get('/b',
   });
 
 
-http.createServer(app).listen(app.get('port'), function() {
+https.createServer(appOptions, app).listen(app.get('port'), function() {
   console.log('Express server listening on port ' + app.get('port'));
 });
