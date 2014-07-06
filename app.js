@@ -43,17 +43,18 @@ user.use(function(req, action) {
   return ok;
 });
 
-var appOptions = {
-    key: fs.readFileSync('ssl/server.key'),
-    cert: fs.readFileSync('ssl/server.crt'),
-    ca: fs.readFileSync('ssl/ca.crt'),
-    requestCert: true,
-    rejectUnauthorized: false
+var options = {
+  key: fs.readFileSync("ssl/server.key"),
+  cert: fs.readFileSync("ssl/server.crt"),
+  ca: fs.readFileSync("ssl/ca.crt"),
+  requestCert: true,
+  rejectUnauthorized: true
 };
+
 
 var app = express();
 
-app.set('port', process.env.PORT || 3000);
+app.set('port', process.env.PORT || 3443);
 
 app.use(express.logger('dev'));
 app.use(express.json());
@@ -64,7 +65,8 @@ app.use(express.errorHandler());
 
 passport.use(new BasicStrategy({}, authenticate));
 
-// curl -ki --user user:password localhost:3000/a
+// curl -ki --user user:password https://localhost:3443/a
+// url -ki --key ssl/client.key --cert ssl/client.crt https://localhost:3443/b
 app.get('/a',
   passport.authenticate('basic', { session: false }),
   user.can('get a'),
@@ -72,15 +74,19 @@ app.get('/a',
    res.json(req.user);
   });
 
+// curl does not work with PKI authentication, though browser and wget work as expected
 // curl -i --user user:password localhost:3000/b
+// wget -q -O - --no-check-certificate --certificate=ssl/client.crt --private-key=ssl/client.key --ca-directory=ssl https://localhost:3443/b
 app.get('/b',
   passport.authenticate('basic', { session: false }),
-  user.can('get b'),
+  // user.can('get b'),
   function(req, res) {
+    console.log(req.connection.getPeerCertificate());
+    console.log(req.client.authorizationError);
    res.json(req.user);
   });
 
 
-https.createServer(appOptions, app).listen(app.get('port'), function() {
+https.createServer(options, app).listen(app.get('port'), function() {
   console.log('Express server listening on port ' + app.get('port'));
 });
