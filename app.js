@@ -7,6 +7,7 @@ var Store = require('jfs'),
     colors = require('colors'),
     passport = require('passport'),
     BasicStrategy = require('passport-http').BasicStrategy,
+    PkiStrategy = require('./lib/pki-strategy').Strategy,
     ConnectRoles = require('connect-roles');
 
 var db = new Store('data/users.json', { pretty: true }),
@@ -16,7 +17,7 @@ db.saveSync('joe', { id: 'joe', password: 'joepw', actions: ['get a', 'get b'] }
 db.saveSync('bob', { id: 'bob', password: 'bobpw', actions: ['get b'] });
 
 // Authenticate
-function authenticate(username, password, done) {
+function authenticateBasic(username, password, done) {
   db.get(username, function(err, user) {
     var msg = 'Authenticating ' +  username + ' with password';
 
@@ -34,6 +35,31 @@ function authenticate(username, password, done) {
   });
 }
 
+function authenticatePki(subject, done) {
+  if(!subject) {
+    console.log('Attempting PKI authentication ✘ - no subject'.red);
+    done(null, false);
+  } else if(!subject.CN) {
+    console.log('Attempting PKI authentication ✘ - no client CN'.red);
+    done(null, false);
+  } else {
+    var cn = subject.CN;
+
+    db.get(cn, function(err, user) {
+      var msg = 'Authenticating ' +  cn + ' with certificate';
+
+      if(!user) {
+        console.log(msg + ' ✘ - no such user'.red);
+        done(null, false);
+      } else {
+        console.log(msg + ' - ✔'.green);
+        delete user.password;
+        done(null, user);
+      }
+    });
+  }
+}
+
 // Authorise
 user.use(function(req, action) {
   var ok = req.user.actions.indexOf(action) >= 0,
@@ -48,7 +74,7 @@ var options = {
   cert: fs.readFileSync("ssl/server.crt"),
   ca: fs.readFileSync("ssl/ca.crt"),
   requestCert: true,
-  rejectUnauthorized: true
+  rejectUnauthorized: false
 };
 
 
@@ -63,12 +89,13 @@ app.use(user.middleware());
 app.use(app.router);
 app.use(express.errorHandler());
 
-passport.use(new BasicStrategy({}, authenticate));
+passport.use(new PkiStrategy({ session: false }, authenticatePki));
+passport.use(new BasicStrategy({ session: false }, authenticateBasic));
 
 // curl -ki --user user:password https://localhost:3443/a
 // url -ki --key ssl/client.key --cert ssl/client.crt https://localhost:3443/b
 app.get('/a',
-  passport.authenticate('basic', { session: false }),
+  passport.authenticate(['pki', 'basic'], { session: false }),
   user.can('get a'),
   function(req, res) {
    res.json(req.user);
@@ -78,15 +105,14 @@ app.get('/a',
 // curl -i --user user:password localhost:3000/b
 // wget -q -O - --no-check-certificate --certificate=ssl/client.crt --private-key=ssl/client.key --ca-directory=ssl https://localhost:3443/b
 app.get('/b',
-  passport.authenticate('basic', { session: false }),
-  // user.can('get b'),
+  passport.authenticate(['pki', 'basic'], { session: false }),
+  user.can('get b'),
   function(req, res) {
-    console.log(req.connection.getPeerCertificate());
-    console.log(req.client.authorizationError);
    res.json(req.user);
   });
 
 
 https.createServer(options, app).listen(app.get('port'), function() {
   console.log('Express server listening on port ' + app.get('port'));
+
 });

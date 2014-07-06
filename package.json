@@ -6,13 +6,14 @@
     "start": "node app.js"
   },
   "dependencies": {
+    "bcrypt": "^0.7.8",
+    "colors": "^0.6.2",
+    "connect-roles": "^3.0.3",
     "express": "^3.4.8",
     "jade": "*",
     "jfs": "^0.1.7",
-    "bcrypt": "^0.7.8",
-    "connect-roles": "^3.0.3",
     "passport": "^0.2.0",
     "passport-http": "^0.2.2",
-    "colors": "^0.6.2"
+    "passport-strategy": "^1.0.0"
   }
 }
